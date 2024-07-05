@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS concept_labels;
+SELECT c.conceptid concept_id, v.value concept_label
+INTO concept_labels
+FROM "values" v
+JOIN concepts c
+ON v.conceptid = c.conceptid
+AND v.valuetype LIKE 'prefLabel'
+;
+
+SELECT c.conceptid,
+(SELECT concept_label FROM concept_labels cl WHERE cl.concept_id = c.conceptid),
+c.nodetype
+FROM concepts c
+WHERE c.nodetype IN ('ConceptScheme', 'Collection');

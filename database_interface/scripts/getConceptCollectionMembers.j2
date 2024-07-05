@@ -1,0 +1,18 @@
+DROP TABLE IF EXISTS concept_labels;
+SELECT c.conceptid concept_id, v.value concept_label
+INTO concept_labels
+FROM "values" v
+JOIN concepts c
+ON v.conceptid = c.conceptid
+AND v.valuetype LIKE 'prefLabel'
+;
+
+SELECT
+(SELECT concept_label FROM concept_labels cl WHERE cl.concept_id = r.conceptidfrom) AS parent_label,
+(SELECT concept_label FROM concept_labels cl WHERE cl.concept_id = r.conceptidto) AS child_label,
+r.relationtype,
+conceptidfrom AS parent_id,
+conceptidto AS child_id
+FROM relations r
+WHERE r.relationtype IN ('hasTopConcept', 'member');
+

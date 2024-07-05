@@ -1,0 +1,5 @@
+SELECT cth."name" AS parent_label, ct.concept_string AS child_label
+FROM concept_table ct
+JOIN concept_thesaurus cth
+ON ct.concept_thesaurus_id = cth.id
+;
