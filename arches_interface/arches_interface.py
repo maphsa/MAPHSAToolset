@@ -88,7 +88,7 @@ def parse_thesaurus_collection_data(target_concept_data):
             continue
         try:
             if collection_name not in list(target_concept_data.concept_schemes.keys()):
-                raise MAPHSARDMIntegrityException(f"Collection name {collection_name} not found in concept thesauruses")
+                raise MAPHSARDMIntegrityException(f"Collection name {collection_name} not found in concept schemes")
         except MAPHSARDMIntegrityException as mrdmie:
             print(mrdmie)
 
@@ -98,6 +98,15 @@ def parse_thesaurus_collection_data(target_concept_data):
         concept_collection_data._id = collection_id
         concept_collection_data._title = collection_name
         thesaurus_collections[collection_name] = concept_collection_data
+
+    # Check for missing collections that are present as concept schemes
+    try:
+        schemes_missing_collection = target_concept_data.concept_schemes.keys() - thesaurus_collections.keys()
+        if len(schemes_missing_collection) > 0:
+            raise MAPHSARDMIntegrityException(f"Concept schemes {schemes_missing_collection} "
+                                              f"missing matching concept collection")
+    except MAPHSARDMIntegrityException as mrdmie:
+        print(mrdmie)
 
     query = """
              SELECT ?subject ?object
@@ -119,10 +128,24 @@ def parse_thesaurus_collection_data(target_concept_data):
             concept_collection_data = thesaurus_collections[collection_name]
             concept_collection_data.members[concept_member_id] = concept_member
         except KeyError:
-            raise MAPHSARDMIntegrityException(f"Unable to match id {concept_member_id} with a concept in a scheme")
+            print(f"Unable to match id {concept_member_id} with a concept in a scheme")
+            continue
 
     for concept_collection in thesaurus_collections.values():
         target_concept_data.add_concept_collection(concept_collection)
+        cc_id = concept_collection.title
+        try:
+            scheme_collection_concept_mismatch = sccm = (target_concept_data.concept_schemes[cc_id].members.keys()
+                                                         - target_concept_data.collections[cc_id].members.keys())
+
+            sccm = [target_concept_data.concepts[c].pref_label for c in sccm]
+
+            if len(scheme_collection_concept_mismatch) > 0:
+                raise MAPHSARDMIntegrityException(f"Concepts {sccm} from the concept scheme {cc_id} "
+                                                  f"missing in matching collection")
+        except MAPHSARDMIntegrityException as mrdmie:
+            print(mrdmie)
+
 
     return target_concept_data
 
