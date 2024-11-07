@@ -25,3 +25,4 @@ A general-purpose toolset that allows for data to be parsed, imported and export
 ## Update History
 
 * 05/07/24 Initial commit with support for RDM features for RDF, gdrive, Postgis and Arches
+* 07/11/24 Add support for migrating from Postgres/Postgis to Arches. Barebones functionality for site name, UUID and coordinates. 
