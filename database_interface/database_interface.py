@@ -1,13 +1,20 @@
 import argparse
+import json
+from sre_parse import Verbose
 
 import psycopg2
 from jinja2 import Template
+
+from shapely import wkb, wkt
+import geojson
 
 import database_interface
 
 from sqlalchemy.ext.automap import automap_base, generate_relationship
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+
+from arches_interface.arches_interface import create_business_data
 
 
 class DatabaseInterface:
@@ -34,13 +41,14 @@ class DatabaseInterface:
         return cls._db_connection_data_pool['target']['base_url']
 
     @classmethod
-    def get_db_connection(cls, env_role):
+    def get_db_connection(cls, env_role, verbose=False):
 
         if env_role not in cls._db_connection_pool:
 
             db_con_data = cls._db_connection_data_pool[env_role]
-            print(f"Connecting to {env_role} database {db_con_data['db']}"
-                  f" at {db_con_data['host']}:{db_con_data['port']}")
+            if verbose:
+                print(f"Connecting to {env_role} database {db_con_data['db']}"
+                      f" at {db_con_data['host']}:{db_con_data['port']}")
             db_connection = psycopg2.connect(
                 host=db_con_data['host'],
                 port=db_con_data['port'],
@@ -77,6 +85,54 @@ class DatabaseInterface:
             # Use hook to pull origin entities and parse
             # session.query(base.classes.her_maphsa).first().id_maphsa
             raise NotImplemented()
+
+        elif args.subcommand[1] == database_interface.MIGRATE_TO_ARCHES:
+            cls.run_script(
+                # 'getConceptCollectionMembers',
+                'createMigrationTables',
+                {},
+                target_db_connection=cls.get_db_connection(database_interface.ORIGIN_ROLE))
+
+            root_sites = cls.run_script(
+                # 'getConceptCollectionMembers',
+                'getSiteRoots',
+                {},
+                target_db_connection=cls.get_db_connection(database_interface.ORIGIN_ROLE),
+                return_results=True)
+
+            source_business_data = {rs[0]: {'her_maphsa_id': rs[0], 'maphsa_id': rs[1]} for rs in root_sites}
+
+            site_summaries = cls.run_script(
+                # 'getConceptCollectionMembers',
+                'getSiteSummaries',
+                {},
+                target_db_connection=cls.get_db_connection(database_interface.ORIGIN_ROLE),
+                return_results=True)
+
+            for ss in site_summaries:
+                site_data = source_business_data[ss[0]]
+                site_data['heritage_location_name'] = ss[1]
+                site_data['heritage_location_general_description'] = ss[2]
+
+            site_geometries = cls.run_script(
+                # 'getConceptCollectionMembers',
+                'getSiteGeometries',
+                {},
+                target_db_connection=cls.get_db_connection(database_interface.ORIGIN_ROLE),
+                return_results=True)
+
+            for sg in site_geometries:
+                site_data = source_business_data[sg[0]]
+                site_data['geometry'] = wkt.dumps(wkb.loads(bytes.fromhex(sg[1]))) if sg[1] is not None else None
+                site_data['geometry'] = geojson.Feature(geometry=wkt.loads(site_data['geometry']), properties={}) if site_data['geometry'] is not None else None
+                site_data['location_certainty'] = sg[2]
+                site_data['geom_ext_certainty'] = sg[3]
+                site_data['system_reference'] = sg[4]
+
+            business_data = create_business_data(source_business_data)
+
+            with open('exportedExtentBusinessData.json', 'w') as outfile:
+                json.dump(business_data, outfile)
 
         else:
             print(f"Unknown database_interface subcommand mode {args.subcommand[1]}")
@@ -121,7 +177,7 @@ class DatabaseInterface:
         return target_data
 
     @classmethod
-    def run_script(cls, script_name: str, target_data: dict, target_db_connection):
+    def run_script(cls, script_name: str, target_data: dict, target_db_connection, return_results=False):
 
         return_value = None
 
@@ -132,7 +188,7 @@ class DatabaseInterface:
         curs = target_db_connection.cursor()
         try:
             curs.execute(script_query)
-            return_value = curs.fetchall()
+            return_value = curs.fetchall() if return_results else None
 
         except psycopg2.errors.DataError as e:
             raise (Exception(f"Error{e.pgcode}: {e.pgerror}\n{script_query}"))
