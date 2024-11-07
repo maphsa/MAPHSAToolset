@@ -1,5 +1,8 @@
 import argparse
 import json
+import uuid
+
+from jinja2 import Template
 
 import arches_interface
 from database_interface import *
@@ -8,6 +11,7 @@ from rdflib import Graph
 from exceptions.exceptions import MAPHSARDMIntegrityException
 from gdrive_interface.thesaurus_interface import get_online_thesaurus_data
 
+import tqdm
 
 def get_thesaurus_concept_data(thesaurus_id):
     g = Graph()
@@ -145,7 +149,6 @@ def parse_thesaurus_collection_data(target_concept_data):
                                                   f"missing in matching collection")
         except MAPHSARDMIntegrityException as mrdmie:
             print(mrdmie)
-
 
     return target_concept_data
 
@@ -325,6 +328,83 @@ def export_collection_rdf():
     rdf_url = f"{arches_interface.OUTPUT_PATH}/reference_data/collections/collections.xml"
     with open(rdf_url, "w") as outfile:
         outfile.write(collection_graph.serialize(format="xml"))
+
+def create_business_data(source_business_data: dict):
+    export_data = {'business_data': { 'resources': []}}
+
+    # for bd_id, bd in source_business_data.items():
+
+    # Debug mode only, also disable for loop after
+    # bd_id = 50
+    # bd = source_business_data[bd_id]
+
+    # TODO THIS IS VERY CONCERNING, REDUNDANT DATA?
+    present_maphsa_ids = set()
+    dropped_data_items = []
+    for index, bd in tqdm.tqdm(source_business_data.items()):
+
+        # TODO THIS IS VERY CONCERNING, REDUNDANT DATA?
+        if bd['maphsa_id'] in present_maphsa_ids:
+            dropped_data_items.append(bd)
+            continue
+
+        bd['graph_id'] = "7ec8e4c2-1cc8-11ee-8c57-996f267db53e"
+        bd["publication_id"] = "fb322262-701e-11ef-ba6a-0242ac120007"
+
+        ####################################################################################################################
+        bd['heritage_location_summary_node_id'] = "7ec8e4c5-1cc8-11ee-8c57-996f267db53e" # Group node
+
+        bd["heritage_location_general_description_node_id"] = "7ec8e504-1cc8-11ee-8c57-996f267db53e"
+        # raw bd["heritage_location_general_description"] value
+        # TODO apply proper filtering
+        bd["heritage_location_general_description"] = bd["heritage_location_general_description"].strip() if "heritage_location_general_description" in bd.keys() else None
+
+        ####################################################################################################################
+        bd["heritage_location_name_node_id"] = "7ec8e505-1cc8-11ee-8c57-996f267db53e" # Group node
+        # raw bd["heritage_location_name"] value
+
+        bd["heritage_location_name_type_node_id"] = "2d7eb348-57b6-11ee-9bdf-c71756fbf602"
+        bd["heritage_location_name_type_value_id"] = "be514849-797d-4449-97c8-3f7f97742e7e" # Primary Name
+
+        ####################################################################################################################
+        bd['maphsa_id_node_id'] = "7ec8e4cb-1cc8-11ee-8c57-996f267db53e" # Group node
+        # raw bd["maphsa_id"] value
+
+        ####################################################################################################################
+        bd['geometry_node_id'] = "7ec8e4cd-1cc8-11ee-8c57-996f267db53e" # Group node
+
+        bd['grid_square_node_id'] = "efa52832-3ec7-11ef-ad06-5945cbceeba1"
+
+        ####################################################################################################################
+        bd['spatial_coordinates_node_id'] = "7ec8e4fa-1cc8-11ee-8c57-996f267db53e" # Group node
+        # composed bd["geometry"] value
+
+        bd['location_certainty_node_id'] = "7ec8e4d4-1cc8-11ee-8c57-996f267db53e"
+        bd['location_certainty_value_id'] = "2438d28d-dab8-480d-a24a-4a6e7dc388cd" # High
+
+        bd['spatial_coordinates_reference_system_datum_node_id'] = "7ec8e4ea-1cc8-11ee-8c57-996f267db53e"
+        bd['spatial_coordinates_reference_system_datum_value_id'] = "5ee9eb5e-873e-4e9b-b6f1-cc06b324ac77" # SIRGAS2000
+
+        bd['geometry_extent_certainty_node_id'] = "7ec8e4f2-1cc8-11ee-8c57-996f267db53e"
+        bd['geometry_extent_certainty_value_id'] = "4b12557b-a709-4927-adb6-ffe801da47d7" # High
+
+        bd['tile_ids'] = [str(uuid.uuid4()) for x in range(5)]
+
+        template_string = open(f"{arches_interface.TEMPLATE_PATH}/arches_resource.j2", 'r').read()
+        template = Template(template_string)
+        rendered_resource = template.render(bd)
+        try:
+            resource_data = json.loads(rendered_resource)
+        except json.decoder.JSONDecodeError as jde:
+            print(jde)
+            dropped_data_items.append(bd)
+
+        export_data['business_data']['resources'].append(resource_data)
+        present_maphsa_ids.add(bd['maphsa_id'])
+
+    print(f"Process finished with {len(export_data['business_data']['resources'])} exported sites and {len(dropped_data_items)} failed exported sites")
+
+    return export_data
 
 
 def process_subcommand(args: argparse.Namespace):

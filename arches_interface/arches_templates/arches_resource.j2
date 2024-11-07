@@ -1,0 +1,116 @@
+{
+    "resourceinstance":
+    {
+        "descriptors":
+        {
+            "en":
+            {
+                "description": null,
+                "map_popup": null,
+                "name": null
+            }
+        },
+        "graph_id": "{{ graph_id }}",
+        "graph_publication_id": "{{ publication_id }}",
+        "legacyid": null,
+        "name": "",
+        "resourceinstanceid": "{{ maphsa_id }}",
+        "publication_id": "{{ publication_id }}"
+    },
+    "tiles":
+    [
+        {
+            "data":
+            {
+                "{{ heritage_location_general_description_node_id }}":
+                {
+                    "en":
+                    {
+                        "direction": "ltr",
+                        "value": "{{ heritage_location_general_description }}"
+                    }
+                }
+            },
+            "nodegroup_id": "{{ heritage_location_summary_node_id }}",
+            "parenttile_id": null,
+            "provisionaledits": null,
+            "resourceinstance_id": "{{ maphsa_id }}",
+            "sortorder": 0,
+            "tileid": "{{ tile_ids[0] }}"
+        },
+        {
+            "data":
+            {
+                "{{ heritage_location_name_type_node_id }}": "{{ heritage_location_name_type_value_id }}",
+                "{{ heritage_location_name_node_id }}":
+                {
+                    "en":
+                    {
+                        "direction": "ltr",
+                        "value": "{{heritage_location_name}}"
+                    }
+                }
+            },
+            "nodegroup_id": "{{ heritage_location_name_node_id }}",
+            "parenttile_id": "{{ tile_ids[0] }}",
+            "provisionaledits": null,
+            "resourceinstance_id": "{{ maphsa_id }}",
+            "sortorder": 0,
+            "tileid": "{{ tile_ids[1] }}"
+        },
+        {
+            "data":
+            {
+                "{{ maphsa_id_node_id }}":
+                {
+
+                    "en":
+                    {
+                        "direction": "ltr",
+                        "value": "{{ maphsa_id }}"
+                    }
+                }
+            },
+            "nodegroup_id": "{{ maphsa_id_node_id }}",
+            "parenttile_id": null,
+            "provisionaledits": null,
+            "resourceinstance_id": "{{ maphsa_id }}",
+            "sortorder": 0,
+            "tileid": "{{ tile_ids[2] }}"
+        },
+        {
+            "data":
+            {
+                "{{ grid_square_node_id }}": null
+            },
+            "nodegroup_id": "{{ geometry_node_id }}",
+            "parenttile_id": null,
+            "provisionaledits": null,
+            "resourceinstance_id": "{{ maphsa_id }}",
+            "sortorder": 0,
+            "tileid": "{{ tile_ids[3] }}"
+        },
+        {
+            "data":
+            {
+                "{{ location_certainty_node_id }}": "{{ location_certainty_value_id }}",
+                "{{ spatial_coordinates_reference_system_datum_node_id }}": "{{ spatial_coordinates_reference_system_datum_value_id }}",
+                "{{ geometry_extent_certainty_node_id }}": "{{ geometry_extent_certainty_value_id }}",
+                "{{ spatial_coordinates_node_id }}":
+                {
+                    "features":
+                    [
+                        {{ geometry }}
+                    ],
+                    "type": "FeatureCollection"
+                }
+            },
+            "nodegroup_id": "{{ spatial_coordinates_node_id }}",
+            "parenttile_id": "{{ tile_ids[3] }}",
+            "provisionaledits": null,
+            "resourceinstance_id": "{{ maphsa_id }}",
+            "sortorder": 0,
+            "tileid": "{{ tile_ids[4] }}"
+        }
+    ]
+}

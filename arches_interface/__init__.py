@@ -17,6 +17,8 @@ ARCHES_SYSTEM_COLLECTIONS = ['Arches', 'Candidates', 'Resource To Resource Relat
 
 OUTPUT_PATH = 'output'
 
+TEMPLATE_PATH = 'arches_interface/arches_templates'
+
 
 class ArchesConcept:
 
